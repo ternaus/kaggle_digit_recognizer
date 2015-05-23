@@ -9,6 +9,27 @@ import numpy as np
 from pylab import *
 import seaborn as sns
 import time
+import theano
+import cPickle as pickle
+
+class AdjustVariable(object):
+    def __init__(self, name, start=0.03, stop=0.001):
+        self.name = name
+        self.start, self.stop = start, stop
+        self.ls = None
+
+    def __call__(self, nn, train_history):
+        if self.ls is None:
+            self.ls = np.linspace(self.start, self.stop, nn.max_epochs)
+
+        epoch = train_history[-1]['epoch']
+        new_value = float32(self.ls[epoch - 1])
+        getattr(nn, self.name).set_value(new_value)
+
+def float32(k):
+    return np.cast['float32'](k)
+
+
 
 def fit_convolutional_model(reshaped_train_x, y, image_width, image_height, reshaped_test_x):
     """Convolutional neural network for kaggle digit recognizer competition.
@@ -30,27 +51,43 @@ def fit_convolutional_model(reshaped_train_x, y, image_width, image_height, resh
 
     input_shape=(None, 1, image_width, image_height),
     conv1_num_filters=7, conv1_filter_size=(3, 3), conv1_nonlinearity=rectify,
-    pool1_ds=(3, 3),
+    pool1_pool_size=(3, 3),
     conv2_num_filters=12, conv2_filter_size=(2, 2), conv2_nonlinearity=rectify,
     hidden3_num_units=50,
     output_num_units=10, output_nonlinearity=softmax,
 
-    update_learning_rate=0.05,
-    update_momentum=0.7,
+
+    update_learning_rate=theano.shared(float32(0.03)),
+    update_momentum=theano.shared(float32(0.9)),
 
     regression=False,
     max_epochs=5,
     verbose=1,
+    on_epoch_finished=[
+        AdjustVariable('update_learning_rate', start=0.03, stop=0.0001),
+        AdjustVariable('update_momentum', start=0.9, stop=0.999),
+        ],
     )
     net2.fit(reshaped_train_x, y)
     predictions = net2.predict(reshaped_test_x)
 
     #save plot
-    train_loss = np.array([i['train_loss'] for i in net2.train_history])
-    valid_loss = np.array([i['valid_loss'] for i in net2.train_history])
+    train_loss = np.array([i['train_loss'] for i in net2.train_history_])
+    valid_loss = np.array([i['valid_loss'] for i in net2.train_history_])
     plot(train_loss, label='train')
     plot(valid_loss, label='valid')
+    grid()
+    legend()
     savefig('plots/conv_{timestamp}.eps'.format(timestamp=time.time()))
+
+    #save model
+    try:
+      os.mkdir('models')
+    except:
+      pass
+
+    with open('net2.pickle', 'wb') as f:
+      pickle.dump(net2, f, -1)
 
     return(predictions)
 
