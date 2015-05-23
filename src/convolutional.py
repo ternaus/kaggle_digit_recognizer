@@ -26,6 +26,28 @@ class AdjustVariable(object):
         new_value = float32(self.ls[epoch - 1])
         getattr(nn, self.name).set_value(new_value)
 
+class EarlyStopping(object):
+    def __init__(self, patience=100):
+        self.patience = patience
+        self.best_valid = np.inf
+        self.best_valid_epoch = 0
+        self.best_weights = None
+
+    def __call__(self, nn, train_history):
+        current_valid = train_history[-1]['valid_loss']
+        current_epoch = train_history[-1]['epoch']
+        if current_valid < self.best_valid:
+            self.best_valid = current_valid
+            self.best_valid_epoch = current_epoch
+            self.best_weights = nn.get_all_params_values()
+        elif self.best_valid_epoch + self.patience < current_epoch:
+            print("Early stopping.")
+            print("Best valid loss was {:.6f} at epoch {}.".format(
+                self.best_valid, self.best_valid_epoch))
+            nn.load_params_from(self.best_weights)
+            raise StopIteration()
+
+
 def float32(k):
     return np.cast['float32'](k)
 
@@ -61,11 +83,12 @@ def fit_convolutional_model(reshaped_train_x, y, image_width, image_height, resh
     update_momentum=theano.shared(float32(0.9)),
 
     regression=False,
-    max_epochs=5,
+    max_epochs=1000,
     verbose=1,
     on_epoch_finished=[
         AdjustVariable('update_learning_rate', start=0.03, stop=0.0001),
         AdjustVariable('update_momentum', start=0.9, stop=0.999),
+        EarlyStopping(patience=200),
         ],
     )
     net2.fit(reshaped_train_x, y)
@@ -78,7 +101,7 @@ def fit_convolutional_model(reshaped_train_x, y, image_width, image_height, resh
     plot(valid_loss, label='valid')
     grid()
     legend()
-    savefig('plots/conv_{timestamp}.eps'.format(timestamp=time.time()))
+    savefig('plots/conv_{timestamp}.png'.format(timestamp=time.time()))
 
     #save model
     try:
