@@ -12,11 +12,54 @@ import pandas as pd
 import os
 from pylab import *
 import seaborn as sns
+import theano
 
 from pylab import *
 
 from sklearn.utils import shuffle
 import cPickle as pickle
+
+def float32(k):
+    return np.cast['float32'](k)
+
+class AdjustVariable(object):
+    def __init__(self, name, start=0.03, stop=0.001):
+        self.name = name
+        self.start, self.stop = start, stop
+        self.ls = None
+
+    def __call__(self, nn, train_history):
+        if self.ls is None:
+            self.ls = np.linspace(self.start, self.stop, nn.max_epochs)
+
+        epoch = train_history[-1]['epoch']
+        new_value = float32(self.ls[epoch - 1])
+        getattr(nn, self.name).set_value(new_value)
+
+
+
+class EarlyStopping(object):
+    def __init__(self, patience=100):
+        self.patience = patience
+        self.best_valid = np.inf
+        self.best_valid_epoch = 0
+        self.best_weights = None
+
+    def __call__(self, nn, train_history):
+        current_valid = train_history[-1]['valid_loss']
+        current_epoch = train_history[-1]['epoch']
+        if current_valid < self.best_valid:
+            self.best_valid = current_valid
+            self.best_valid_epoch = current_epoch
+            self.best_weights = nn.get_all_params_values()
+        elif self.best_valid_epoch + self.patience < current_epoch:
+            print("Early stopping.")
+            print("Best valid loss was {:.6f} at epoch {}.".format(
+                self.best_valid, self.best_valid_epoch))
+            nn.load_params_from(self.best_weights)
+            raise StopIteration()
+
+
 
 train = pd.read_csv('../data/train.csv')
 test = pd.read_csv('../data/test.csv')
@@ -46,7 +89,7 @@ params = {
   'max_epochs': 100
 }
 
-method = 'convolutional_update_learning_rate{ulr}_update_momentum{um}_max_epochs{me}'.format(ulr=params['update_learning_rate'],
+method = 'convolutional_fancy_epochs{me}'.format(ulr=params['update_learning_rate'],
                                                                                um=params['update_momentum'],
                                                                                me=params['max_epochs'])
 net1 = NeuralNet(
@@ -75,12 +118,17 @@ net1 = NeuralNet(
 
     # optimization method:
     update=nesterov_momentum,
-    update_learning_rate=params['update_learning_rate'],
-    update_momentum=params['update_momentum'],
+    update_learning_rate=theano.shared(float32(0.03)),
+    update_momentum=theano.shared(float32(0.9)),
     use_label_encoder=True,
     regression=False,  # flag to indicate we're dealing with regression problem
     max_epochs=params['max_epochs'],  # we want to train this many epochs
     verbose=1,
+    on_epoch_finished=[
+        AdjustVariable('update_learning_rate', start=0.03, stop=0.0001),
+        AdjustVariable('update_momentum', start=0.9, stop=0.999),
+        EarlyStopping(patience=10),
+        ],
     )
 
 
