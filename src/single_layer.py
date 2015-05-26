@@ -108,6 +108,7 @@ plot(train_loss, linewidth=3, label='train')
 plot(valid_loss, linewidth=3, label='valid')
 yscale("log")
 savefig('plots/{method}.png'.format(method=method))
+legend()
 
 #predicting
 predictions = net1.predict(X_test_reshaped)
@@ -117,6 +118,6 @@ try:
 except:
   pass
 
-pd.DataFrame({"ImageId": range(1, len(predictions) + 1), "Label": predictions}).to_csv(method+'.csv',
+pd.DataFrame({"ImageId": range(1, len(predictions) + 1), "Label": predictions}).to_csv('predictions/' + method +'.csv',
                                                                                        index=False,
                                                                                        header=True)
