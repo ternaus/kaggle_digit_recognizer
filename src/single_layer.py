@@ -77,7 +77,7 @@ net1 = NeuralNet(
 
 X_reshaped = X.reshape(X.shape[0], 28, 28)
 
-X_reshaped, y = shuffle(X, y, random_state=random_state)
+X_reshaped, y = shuffle(X_reshaped, y, random_state=random_state)
 
 net1.fit(X_reshaped, y)
 
