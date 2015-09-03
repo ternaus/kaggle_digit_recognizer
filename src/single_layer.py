@@ -44,10 +44,10 @@ random_state = 42
 params = {
   'update_learning_rate': 0.01,
   'update_momentum': 0.9,
-  'max_epochs':15
+  'max_epochs':20
 }
 
-method = 'update_learning_rate{ulr}_update_momentum{um}_max_epochs{me}'.format(ulr=params['update_learning_rate'],
+method = 'single_update_learning_rate{ulr}_update_momentum{um}_max_epochs{me}'.format(ulr=params['update_learning_rate'],
                                                                                um=params['update_momentum'],
                                                                                me=params['max_epochs'])
 net1 = NeuralNet(
@@ -59,10 +59,10 @@ net1 = NeuralNet(
         ],
     # layer parameters:
     input_shape=(None, 28, 28),  # 28x28 input pixels per batch
-    hidden0_num_units=300,  # number of units in hidden layer
+    hidden0_num_units=100,  # number of units in hidden layer
     # hidden1_num_units=50,  # number of units in hidden layer
     output_nonlinearity=softmax,  # output layer uses identity function
-    output_num_units=10,  # 1 target values
+    output_num_units=10,  # 10 target values
 
     # optimization method:
     update=nesterov_momentum,
@@ -75,9 +75,9 @@ net1 = NeuralNet(
     )
 
 
-X_reshaped = X.reshape(X.shape[0], 28, 28)
+X, y = shuffle(X, y, random_state=random_state)
 
-X_reshaped, y = shuffle(X_reshaped, y, random_state=random_state)
+X_reshaped = X.reshape(X.shape[0], 28, 28)
 
 net1.fit(X_reshaped, y)
 
@@ -107,8 +107,8 @@ valid_loss = np.array([i["valid_loss"] for i in net1.train_history_])
 plot(train_loss, linewidth=3, label='train')
 plot(valid_loss, linewidth=3, label='valid')
 yscale("log")
-savefig('plots/{method}.png'.format(method=method))
 legend()
+savefig('plots/{method}.png'.format(method=method))
 
 #predicting
 predictions = net1.predict(X_test_reshaped)

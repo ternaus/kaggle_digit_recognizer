@@ -43,7 +43,7 @@ random_state = 42
 params = {
   'update_learning_rate': 0.01,
   'update_momentum': 0.9,
-  'max_epochs': 100
+  'max_epochs': 10
 }
 
 method = 'convolutional_update_learning_rate{ulr}_update_momentum{um}_max_epochs{me}'.format(ulr=params['update_learning_rate'],
@@ -64,9 +64,15 @@ net1 = NeuralNet(
         ('hidden5', layers.DenseLayer),
         ('output', layers.DenseLayer),
         ],
-    conv1_num_filters=32, conv1_filter_size=(3, 3), pool1_pool_size=(2, 2),
-    conv2_num_filters=64, conv2_filter_size=(2, 2), pool2_pool_size=(2, 2),
-    conv3_num_filters=128, conv3_filter_size=(2, 2), pool3_pool_size=(2, 2),
+    conv1_num_filters=32, 
+    conv1_filter_size=(3, 3), 
+    pool1_pool_size=(2, 2),
+    conv2_num_filters=64, 
+    conv2_filter_size=(2, 2), 
+    pool2_pool_size=(2, 2),
+    conv3_num_filters=128, 
+    conv3_filter_size=(2, 2), 
+    pool3_pool_size=(2, 2),
     hidden4_num_units=500,
     hidden5_num_units=500,
 
@@ -84,9 +90,9 @@ net1 = NeuralNet(
     )
 
 
-X_reshaped = X.reshape(-1, 1, 28, 28)
+X, y = shuffle(X, y, random_state=random_state)
 
-X_reshaped, y = shuffle(X_reshaped, y, random_state=random_state)
+X_reshaped = X.reshape(-1, 1, 28, 28)
 
 net1.fit(X_reshaped, y)
 
@@ -116,8 +122,8 @@ valid_loss = np.array([i["valid_loss"] for i in net1.train_history_])
 plot(train_loss, linewidth=3, label='train')
 plot(valid_loss, linewidth=3, label='valid')
 yscale("log")
-savefig('plots/{method}.png'.format(method=method))
 legend()
+savefig('plots/{method}.png'.format(method=method))
 
 #predicting
 predictions = net1.predict(X_test_reshaped)

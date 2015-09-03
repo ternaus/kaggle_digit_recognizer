@@ -132,9 +132,9 @@ net1 = NeuralNet(
     )
 
 
-X_reshaped = X.reshape(-1, 1, 28, 28)
+X, y = shuffle(X, y, random_state=random_state)
 
-X_reshaped, y = shuffle(X_reshaped, y, random_state=random_state)
+X_reshaped = X.reshape(-1, 1, 28, 28)
 
 net1.fit(X_reshaped, y)
 
@@ -147,7 +147,7 @@ try:
 except:
   pass
 
-with open('models/conv.pickle', 'wb') as f:
+with open('models/conv_fancy.pickle', 'wb') as f:
   pickle.dump(net1, f, -1)
 
 
@@ -164,8 +164,9 @@ valid_loss = np.array([i["valid_loss"] for i in net1.train_history_])
 plot(train_loss, linewidth=3, label='train')
 plot(valid_loss, linewidth=3, label='valid')
 yscale("log")
-savefig('plots/{method}.png'.format(method=method))
 legend()
+savefig('plots/{method}.png'.format(method=method))
+
 
 #predicting
 predictions = net1.predict(X_test_reshaped)
